@@ -1,17 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="04e1ca49-9a84-4c38-b27f-bca9967f15d8" name="Default Changelist" comment="" />
+    <list default="true" id="04e1ca49-9a84-4c38-b27f-bca9967f15d8" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/.idea.HexagonBatuhan/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.HexagonBatuhan/.idea/indexLayout.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.HexagonBatuhan/.idea/indexLayout.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.HexagonBatuhan/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.HexagonBatuhan/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/GameController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/GameController.cs" afterDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Constants.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/B814B509-D4AD-406F-B40C-6C93E38929E7/79/Int16.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/B814B509-D4AD-406F-B40C-6C93E38929E7/56/Boolean.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/85963591-C1A0-4AAD-8364-45DB604E7807/18/6540eb69/GameObject.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Hexagon.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/B814B509-D4AD-406F-B40C-6C93E38929E7/507/Dictionary.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/B814B509-D4AD-406F-B40C-6C93E38929E7/7A/Int32.cs" root0="SKIP_HIGHLIGHTING" />
@@ -35,6 +45,7 @@
     <property name="Discover.Launch.Via.Unity" value="true" />
     <property name="Rider.DefaultBreakpoints.AreToggled" value="true" />
     <property name="Rider.ProjectViewActivator.IsNotFirstRun" value="true" />
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="settings.editor.selected.configurable" value="preferences.sourceCode" />
   </component>
@@ -58,10 +69,10 @@
       <option name="userSelectedPid" value="false" />
       <method v="2" />
     </configuration>
-    <configuration name="Attach to Unity Editor" type="UNITY_DEBUG_RUN_CONFIGURATION" factoryName="Unity Debug" show_console_on_std_err="false" show_console_on_std_out="false" port="50000" address="localhost" pid="18033">
+    <configuration name="Attach to Unity Editor" type="UNITY_DEBUG_RUN_CONFIGURATION" factoryName="Unity Debug" show_console_on_std_err="false" show_console_on_std_out="false" port="50000" address="localhost" pid="3271">
       <option name="allowRunningInParallel" value="false" />
       <option name="listenPortForConnections" value="false" />
-      <option name="pid" value="18033" />
+      <option name="pid" value="3271" />
       <option name="userSelectedPid" value="false" />
       <method v="2" />
     </configuration>
@@ -74,6 +85,7 @@
       <option name="presentableId" value="Default" />
       <updated>1570561109954</updated>
       <workItem from="1570561119513" duration="16774000" />
+      <workItem from="1570643191679" duration="9295000" />
     </task>
     <servers />
   </component>
@@ -82,6 +94,17 @@
   </component>
   <component name="UnityProjectConfiguration" hasMinimizedUI="true" />
   <component name="UnityUnitTestConfiguration" currentTestLauncher="EditMode" />
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
   <component name="VcsManagerConfiguration">
     <option name="LOCAL_CHANGES_DETAILS_PREVIEW_SHOWN" value="true" />
   </component>
@@ -92,46 +115,12 @@
           <properties exception="System.Threading.ThreadAbortException" displayValue="System.Threading.ThreadAbortException" />
           <option name="timeStamp" value="1" />
         </breakpoint>
-        <line-breakpoint enabled="true" type="DotNet Breakpoints">
-          <url>file://$PROJECT_DIR$/Assets/Scripts/GameController.cs</url>
-          <line>496</line>
-          <properties documentPath="$PROJECT_DIR$/Assets/Scripts/GameController.cs" initialLine="496">
-            <startOffsets>
-              <option value="17672" />
-            </startOffsets>
-            <endOffsets>
-              <option value="17711" />
-            </endOffsets>
-          </properties>
-          <option name="timeStamp" value="15" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DotNet Breakpoints">
-          <url>file://$PROJECT_DIR$/Assets/Scripts/GameController.cs</url>
-          <line>498</line>
-          <properties documentPath="$PROJECT_DIR$/Assets/Scripts/GameController.cs" initialLine="498">
-            <startOffsets>
-              <option value="17742" />
-            </startOffsets>
-            <endOffsets>
-              <option value="17785" />
-            </endOffsets>
-          </properties>
-          <option name="timeStamp" value="16" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DotNet Breakpoints">
-          <url>file://$PROJECT_DIR$/Assets/Scripts/GameController.cs</url>
-          <line>72</line>
-          <properties documentPath="$PROJECT_DIR$/Assets/Scripts/GameController.cs" initialLine="72">
-            <startOffsets>
-              <option value="2253" />
-            </startOffsets>
-            <endOffsets>
-              <option value="2329" />
-            </endOffsets>
-          </properties>
-          <option name="timeStamp" value="17" />
-        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
+    <reveal-manager>
+      <revealed-members>
+        <RevealItemInfo typeName="UnityEngine.Transform" fieldName="position" />
+      </revealed-members>
+    </reveal-manager>
   </component>
 </project>
