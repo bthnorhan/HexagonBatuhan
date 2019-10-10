@@ -2,35 +2,70 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using UnityEngine;
-using UnityEngine.UI;
-
+    
 public class GameController : MonoBehaviour
 {
+    
+    #region Değişkenler
+
     //Oyun boyutları. Editörden değiştirilebilir.
     public int columnSize = 8;
     public int rowSize = 9;
 
+    //Oyun bitti mi ?
+    public bool isGameOver = false;
+    
+    // Varsayılan renk listesi editörden değiştirilebilir.
+    public Color[] hexagonColors = new Color[]
+    {
+        new Color(0.95f, 0.26f, 0.21f),
+        new Color(0.61f, 0.15f, 0.69f),
+        new Color(0.24f, 0.31f, 0.7f),
+        new Color(0, 0.73f, 0.83f),
+        new Color(0.29f, 0.68f, 0.31f),
+    };
+
     //Oynanan hareket sayısı ve puan
     public int point = 0, movement = 0;
 
+    //Bombanın geleceği eşik değeri
+    public int bombThresholdPoint = 1000;
+
     //Altıgen prefabi
     public GameObject hexagonPrefab;
+    
+    //Bomba altıgen prefabi
+    public GameObject bombHexagonPrefab;
 
     //Seçlmiş altıgen grubunu içerisinde tutan ve dönmelerde kolaylık sağlayan obje
     public GameObject selectedHexagonsContainer;
 
-
+    //Bağlı olan bombalara geri sayımını azaltmak için gerekli fonksiyonlarını çağırır
+    public delegate void MovementEmitter();
+    public MovementEmitter movementEmitter;    
+    
+    
     //Obje oluşturmak için yardımcı vektör.
     private Vector3 objectPoint = Constants.ORIGIN_POINT;
 
     //Altıgenin hangi komuşusunun seçildiğini belirten değişken
     private int neighborIndex = 0;
+    
+    private GameObject[] neighborHexagons = new GameObject[] {}; 
 
     //Altıgenler döndürülüyor mu ?
     private bool isTurning = false;
 
+    //Yeni altıgenler oluşturuluyor mu ?
+    private bool isRefilling = false;
+
+    //Oluşturulan bomba sayısı
+    private int bombCount = 0;
+    
+    //Bomba oyun içerisinde oluşturulmalı mı ?
+    public bool shouldInstantiateBomb = false;
+    
     //Oluşturulan altıgenlerin içinde tutulduğu dizi
     public GameObject[,] hexagons;
 
@@ -38,28 +73,80 @@ public class GameController : MonoBehaviour
     private GameObject selectedHexagon;
     public GameObject SelectedHexagon { get => selectedHexagon; }
 
+    //Menü kontrolcüsü
     private MenuController menuController;
 
+    //Patlatılacak altıgen listesi
     private List<GameObject> explosionList = new List<GameObject>();
+    
+    //Patlatılmış altıgen kolonları
     private List<int> explosionColumnList = new List<int>();
 
+    #endregion
+
+    #region Unity Uygulama Hayat Döngüsü
+
+    private void Start()
+    {
+        //Ekran asla kapanmasın modu.
+        Screen.sleepTimeout = (int)SleepTimeout.NeverSleep;
+    }
+    
     void Awake()
     {
-        SetupGame();
-    }
+        menuController = GetComponent<MenuController>();
 
-    //Kamerayı oluşturulan altıgenlere göre ayarlar ve altıgenleri oluşturur.
-    private void SetupGame()
-    {
+        //Kamerayı oluşturulacak altıgenlere göre ayarlar.
         Camera.main.transform.position = new Vector3(((columnSize / 2.0f) - 0.5f) * Constants.XCOLLOFFSET, (rowSize / 2.0f) * Constants.YROWOFFSET, Camera.main.transform.position.z);
         Camera.main.orthographicSize = ((columnSize + 2) * Constants.XCOLLOFFSET);
-        menuController = GetComponent<MenuController>();
+        
+        StopAllCoroutines();
+        
+        StartCoroutine(SetupGame());
+    }
+    
+
+    /// <summary>
+    /// Oyun kapatılmasında veya sahne sonlandırılmasında arkaplanda çalışan işlemleri durdurur.
+    /// </summary>
+    private void OnApplicationQuit()
+    {
+        StopAllCoroutines();
+    }
+    private void OnDestroy()
+    {
+        StopAllCoroutines();
+    }
+
+    #endregion
+    
+    /// <summary>
+    ///  Oyunun değişkenlerini ayarlar ve yükleniyor görselini ekrana getirir.
+    /// </summary>
+    /// <returns></returns>
+    private IEnumerator SetupGame()
+    {
+        menuController.fadeInLoadingCanvas();
+        selectedHexagon = null;
+        neighborIndex = 0;
+        Vector3 position = new Vector3(-10, 2, -9);
+        selectedHexagonsContainer.transform.position = position;
+        
+        bombCount = 0;
+        point = 0;
+        movement = 0;
+
+        shouldInstantiateBomb = false;
+        isGameOver = false;
+        isTurning = false;
+        isRefilling = false;
 
         hexagons = new GameObject[rowSize, columnSize];
         for (int row = 0; row < rowSize; row++)
         {
             for (int col = 0; col < columnSize; col++)
             {
+                yield return new WaitForSeconds(Constants.HEX_INSTANTIATE_TIME);
                 GenerateHexagon(row, col);
             }
         }
@@ -81,12 +168,29 @@ public class GameController : MonoBehaviour
         {
             objectPoint.Set(col * Constants.XCOLLOFFSET, row * Constants.YROWOFFSET + (Constants.YROWOFFSET / 2.0f), 0);
         }
-        GameObject hex = Instantiate(hexagonPrefab, objectPoint, Quaternion.identity);
-        hex.name = "HEX_" + row + "_" + col + "_" + movement;
-        Hexagon hexagon = hex.GetComponent<Hexagon>();
-        hexagon.Row = row;
-        hexagon.Col = col;
-        hexagons[row, col] = hex;
+        
+        if (shouldInstantiateBomb)
+        {
+            GameObject bombHex = Instantiate(bombHexagonPrefab, objectPoint, Quaternion.identity);
+            bombHex.name = "BOMBHEX_" + row + "_" + col + "_" + movement;
+            BombHexagon bombHexagon = bombHex.GetComponent<BombHexagon>();
+            bombHexagon.bombExplosion += SetGameOver;
+            movementEmitter += bombHexagon.decreaseBombCounter;
+            bombHexagon.setBombCounter(Constants.BOMB_COUNTER);
+            bombHexagon.Row = row;
+            bombHexagon.Col = col;
+            hexagons[row, col] = bombHex;
+            shouldInstantiateBomb = false;
+        }
+        else
+        { 
+            GameObject hex = Instantiate(hexagonPrefab, objectPoint, Quaternion.identity);
+            hex.name = "HEX_" + row + "_" + col + "_" + movement;
+            Hexagon hexagon = hex.GetComponent<Hexagon>();
+            hexagon.Row = row;
+            hexagon.Col = col;
+            hexagons[row, col] = hex;
+        }
     }
 
     /// <summary>
@@ -95,35 +199,39 @@ public class GameController : MonoBehaviour
     /// <param name="gameObject"></param>
     public void SetSelectedHexagon(GameObject gameObject)
     {
-        selectedHexagonsContainer.transform.DetachChildren();
-
-        if (gameObject != null)
+        if (!isTurning && !isRefilling)
         {
-            if (selectedHexagon != null)
+            selectedHexagonsContainer.transform.DetachChildren();
+
+            if (gameObject != null)
             {
-                if (gameObject.name.Equals(selectedHexagon.name))
+                if (selectedHexagon != null)
                 {
-                    neighborIndex++;
-                    neighborIndex %= 6;
+                    if (gameObject.name.Equals(selectedHexagon.name))
+                    {
+                        neighborIndex++;
+                        neighborIndex %= 6;
+                    }
+                    else
+                    {
+                        neighborIndex = 0;
+                    }
                 }
                 else
                 {
                     neighborIndex = 0;
                 }
-            }
-            else
+                
+                SetNeighborHexagons(gameObject);
+                selectedHexagon = gameObject;
+                MoveSelectedHexagonsContainer();
+            } else
             {
+                selectedHexagon = null;
                 neighborIndex = 0;
+                Vector3 position = new Vector3(-10, 2, -9);
+                selectedHexagonsContainer.transform.position = position;
             }
-
-            selectedHexagon = gameObject;
-            MoveSelectedHexagonsContainer();
-        } else
-        {
-            selectedHexagon = null;
-            neighborIndex = 0;
-            Vector3 position = new Vector3(-10, 2, -9);
-            selectedHexagonsContainer.transform.position = position;
         }
     }
 
@@ -133,109 +241,118 @@ public class GameController : MonoBehaviour
     /// </summary>
     private void MoveSelectedHexagonsContainer()
     {
-        var row = selectedHexagon.GetComponent<Hexagon>().Row;
-        var col = selectedHexagon.GetComponent<Hexagon>().Col;
+        int row = selectedHexagon.GetComponent<Hexagon>().Row;
+        int col = selectedHexagon.GetComponent<Hexagon>().Col;
 
-        if (row == 0)
+        //Seçileblecek komşu altıgen kontrolü
+
+        //TODO FIX
+        while (neighborHexagons[neighborIndex] == null && neighborHexagons[neighborIndex+1] == null)
         {
-            if (col == 0)
-            {
-                neighborIndex = 1;
-            }
-            else if (col == columnSize - 1)
-            {
-                if (columnSize % 2 == 1)
-                {
-                    neighborIndex = 2;
-                }
-                else
-                {
-                    if (neighborIndex != 2 && neighborIndex != 3)
-                    {
-                        neighborIndex = 2;
-                    }
-                }
-            }
-            else
-            {
-                if (col % 2 == 1)
-                {
-                    if (neighborIndex == 4 || neighborIndex == 5)
-                    {
-                        neighborIndex = 0;
-                    }
-                } else
-                {
-                    if (neighborIndex != 1 && neighborIndex != 2)
-                    {
-                        neighborIndex = 1;
-                    }
-                }
-            }
-        }
-        else if (row == rowSize - 1)
-        {
-            if (col == 0)
-            {
-                if (neighborIndex != 0 && neighborIndex != 5)
-                {
-                    neighborIndex = 5;
-                }
-            }
-            else if (col == columnSize - 1)
-            {
-                if (columnSize % 2 == 0)
-                {
-                    neighborIndex = 4;
-                }
-                else
-                {
-                    if (neighborIndex != 3 && neighborIndex != 4)
-                    {
-                        neighborIndex = 3;
-                    }
-                }
-            }
-            else
-            {
-                if (col % 2 == 1)
-                {
-                    if (neighborIndex != 4 && neighborIndex != 5)
-                    {
-                        neighborIndex = 4;
-                    }
-                }
-                else
-                {
-                    if (neighborIndex == 1 || neighborIndex == 2)
-                    {
-                        neighborIndex = 3;
-                    }
-                }
-            }
-        }
-        else
-        {
-            if (col == 0)
-            {
-                if (neighborIndex != 0 && neighborIndex != 1 && neighborIndex != 5)
-                {
-                    neighborIndex = 5;
-                }
-            }
-            else if (col == columnSize - 1)
-            {
-                if (neighborIndex != 2 && neighborIndex != 3 && neighborIndex != 4)
-                {
-                    neighborIndex = 2;
-                }
-            }
+            neighborIndex++;
+            neighborIndex %= 6;
         }
 
-        var angleRadian = (60 * neighborIndex) * Constants.DEG2RAD;
-        var position = new Vector3(selectedHexagon.transform.position.x + ((Constants.WIDTH / 2) * Mathf.Cos(angleRadian)), selectedHexagon.transform.position.y + ((Constants.HEIGHT / 2) * Mathf.Sin(angleRadian)), -9);
+//        if (row == 0)
+//        {
+//            if (col == 0)
+//            {
+//                neighborIndex = 1;
+//            }
+//            else if (col == columnSize - 1)
+//            {
+//                if (columnSize % 2 == 1)
+//                {
+//                    neighborIndex = 2;
+//                }
+//                else
+//                {
+//                    if (neighborIndex != 2 && neighborIndex != 3)
+//                    {
+//                        neighborIndex = 2;
+//                    }
+//                }
+//            }
+//            else
+//            {
+//                if (col % 2 == 1)
+//                {
+//                    if (neighborIndex == 4 || neighborIndex == 5)
+//                    {
+//                        neighborIndex = 0;
+//                    }
+//                } else
+//                {
+//                    if (neighborIndex != 1 && neighborIndex != 2)
+//                    {
+//                        neighborIndex = 1;
+//                    }
+//                }
+//            }
+//        }
+//        else if (row == rowSize - 1)
+//        {
+//            if (col == 0)
+//            {
+//                if (neighborIndex != 0 && neighborIndex != 5)
+//                {
+//                    neighborIndex = 5;
+//                }
+//            }
+//            else if (col == columnSize - 1)
+//            {
+//                if (columnSize % 2 == 0)
+//                {
+//                    neighborIndex = 4;
+//                }
+//                else
+//                {
+//                    if (neighborIndex != 3 && neighborIndex != 4)
+//                    {
+//                        neighborIndex = 3;
+//                    }
+//                }
+//            }
+//            else
+//            {
+//                if (col % 2 == 1)
+//                {
+//                    if (neighborIndex != 4 && neighborIndex != 5)
+//                    {
+//                        neighborIndex = 4;
+//                    }
+//                }
+//                else
+//                {
+//                    if (neighborIndex == 1 || neighborIndex == 2)
+//                    {
+//                        neighborIndex = 3;
+//                    }
+//                }
+//            }
+//        }
+//        else
+//        {
+//            if (col == 0)
+//            {
+//                if (neighborIndex != 0 && neighborIndex != 1 && neighborIndex != 5)
+//                {
+//                    neighborIndex = 5;
+//                }
+//            }
+//            else if (col == columnSize - 1)
+//            {
+//                if (neighborIndex != 2 && neighborIndex != 3 && neighborIndex != 4)
+//                {
+//                    neighborIndex = 2;
+//                }
+//            }
+//        }
 
-        var tempRotation = selectedHexagonsContainer.transform.eulerAngles;
+        float angleRadian = (60 * neighborIndex) * Constants.DEG2RAD;
+        Vector3 position = new Vector3(selectedHexagon.transform.position.x + ((Constants.WIDTH / 2) * Mathf.Cos(angleRadian)), selectedHexagon.transform.position.y + ((Constants.HEIGHT / 2) * Mathf.Sin(angleRadian)), -9);
+
+        Vector3 tempRotation = selectedHexagonsContainer.transform.eulerAngles;
         tempRotation.z = neighborIndex * 60;
         selectedHexagonsContainer.transform.eulerAngles = tempRotation;
 
@@ -254,10 +371,11 @@ public class GameController : MonoBehaviour
 
         movement++;
         menuController.setMovementText(movement.ToString());
+        if (movementEmitter != null) movementEmitter();
 
-        var row = selectedHexagon.GetComponent<Hexagon>().Row;
-        var col = selectedHexagon.GetComponent<Hexagon>().Col;
-        var colIsEven = selectedHexagon.GetComponent<Hexagon>().colIsEven();
+        int row = selectedHexagon.GetComponent<Hexagon>().Row;
+        int col = selectedHexagon.GetComponent<Hexagon>().Col;
+        bool colIsEven = selectedHexagon.GetComponent<Hexagon>().colIsEven();
 
         GameObject firstSelected = hexagons[row, col], secondSelected = null, thirdSelected = null;
 
@@ -292,10 +410,9 @@ public class GameController : MonoBehaviour
         firstSelected.transform.SetParent(selectedHexagonsContainer.transform);
         secondSelected.transform.SetParent(selectedHexagonsContainer.transform);
         thirdSelected.transform.SetParent(selectedHexagonsContainer.transform);
-
+        
         StartCoroutine(RotateContainer(isClockWise));
     }
-
 
     /// <summary>
     /// Seçili altıgen grubunu döndürür ve diziyi güncellemesi için swap fonksiyonunu çağırır.
@@ -307,14 +424,14 @@ public class GameController : MonoBehaviour
     private IEnumerator RotateContainer(bool isClockWise)
     {
         isTurning = true;
-        for (int i = 0; i < 3 && isTurning; i++)
+        for (int i = 0; i < 3; i++)
         {
             selectedHexagonsContainer.transform.Rotate(Vector3.forward, 120 * (isClockWise ? -1 : 1));
-            yield return SwapHexagons(isClockWise);
-            yield return CheckHexagonExplosion(false);
-            //StartCoroutine(SwapHexagons(isClockWise));
-            //StartCoroutine(CheckHexagonExplosion(false));
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForSeconds(Constants.WAIT_TIME);
+            StartCoroutine(SwapHexagons(isClockWise));
+            StartCoroutine(CheckHexagonExplosion(false));
+            yield return new WaitForSeconds(Constants.HEX_ROTATION_WAIT_TIME);
+            if (!isTurning) break;
         }
 
         selectedHexagon = null;
@@ -323,6 +440,7 @@ public class GameController : MonoBehaviour
         selectedHexagonsContainer.transform.DetachChildren();
         selectedHexagonsContainer.transform.position = position;
         isTurning = false;
+        yield return null;
     }
 
     /// <summary>
@@ -332,8 +450,6 @@ public class GameController : MonoBehaviour
     /// </summary>
     /// <param name="isClockWise"></param>
     private IEnumerator SwapHexagons(bool isClockWise) {
-        //yield return new WaitForSeconds(0.5f);
-
         GameObject first = selectedHexagonsContainer.transform.GetChild(0).gameObject;
         GameObject second = selectedHexagonsContainer.transform.GetChild(1).gameObject;
         GameObject third = selectedHexagonsContainer.transform.GetChild(2).gameObject;
@@ -377,7 +493,7 @@ public class GameController : MonoBehaviour
         hexagons[swap2.Row, swap2.Col] = second;
         hexagons[swap3.Row, swap3.Col] = third;
 
-        yield return null;
+        yield return new WaitForSeconds(Constants.WAIT_TIME);
     }
 
     /// <summary>
@@ -388,101 +504,131 @@ public class GameController : MonoBehaviour
     /// <returns></returns>
     private IEnumerator CheckHexagonExplosion(bool overridePointMechanic)
     {
-        //yield return new WaitForSeconds(0.5f);
         explosionList.Clear();
-
         Dictionary<GameObject, byte> tempHexagonDictionary = new Dictionary<GameObject, byte>();
-
-        for (int i = 1; i < rowSize - 1; i++)
+        
+        //////////// Altıgen renk kontrolleri
+        for (int i = 0; i < rowSize; i++)
         {
-            for (int j = 1; j < columnSize - 1; j++)
+            for (int j = 0; j < columnSize; j++)
             {
-                GameObject go0 = hexagons[i, j];
-                GameObject go1 = hexagons[j % 2 == 0 ? i : i + 1, j + 1];
-                GameObject go2 = hexagons[j % 2 == 0  ? i - 1 : i, j + 1];
-                GameObject go3 = hexagons[i - 1, j];
-                GameObject go4 = hexagons[j % 2 == 0  ? i - 1 : i, j - 1];
-                GameObject go5 = hexagons[j % 2 == 0  ? i : i + 1, j - 1];
-                GameObject go6 = hexagons[i + 1, j];
+                GameObject g0 = GetHexagon(i, j);
+                GameObject g1 = GetHexagon(j % 2 == 0 ? i : i + 1, j + 1);
+                GameObject g2 = GetHexagon(j % 2 == 0 ? i - 1 : i, j + 1);
+                GameObject g3 = GetHexagon(i - 1, j);
+                GameObject g4 = GetHexagon(j % 2 == 0  ? i - 1 : i, j - 1);
+                GameObject g5 = GetHexagon(j % 2 == 0  ? i : i + 1, j - 1);
+                GameObject g6 = GetHexagon(i + 1, j);
 
-                Hexagon hex0 = go0.GetComponent<Hexagon>();
-                Hexagon hex1 = go1.GetComponent<Hexagon>();
-                Hexagon hex2 = go2.GetComponent<Hexagon>();
-                Hexagon hex3 = go3.GetComponent<Hexagon>();
-                Hexagon hex4 = go4.GetComponent<Hexagon>();
-                Hexagon hex5 = go5.GetComponent<Hexagon>();
-                Hexagon hex6 = go6.GetComponent<Hexagon>();
-
-                int c0 = hex0.ColorIndex;
-                int c1 = hex1.ColorIndex;
-                int c2 = hex2.ColorIndex;
-                int c3 = hex3.ColorIndex;
-                int c4 = hex4.ColorIndex;
-                int c5 = hex5.ColorIndex;
-                int c6 = hex6.ColorIndex;
-
-                if (c0 == c1 && c0 == c2)
+                if (CheckHexagonsColors(g0, g1, g2))
                 {
-                    tempHexagonDictionary[go0] = 0;
-                    tempHexagonDictionary[go1] = 0;
-                    tempHexagonDictionary[go2] = 0;
+                    tempHexagonDictionary[g0] = 0;
+                    tempHexagonDictionary[g1] = 0;
+                    tempHexagonDictionary[g2] = 0;
                 }
 
-                if (c0 == c2 && c0 == c3)
+                if (CheckHexagonsColors(g0, g2, g3))
                 {
-                    tempHexagonDictionary[go0] = 0;
-                    tempHexagonDictionary[go2] = 0;
-                    tempHexagonDictionary[go3] = 0;
+                    tempHexagonDictionary[g0] = 0;
+                    tempHexagonDictionary[g2] = 0;
+                    tempHexagonDictionary[g3] = 0;
                 }
 
-                if (c0 == c3 && c0 == c4)
+                if (CheckHexagonsColors(g0, g3, g4))
                 {
-                    tempHexagonDictionary[go0] = 0;
-                    tempHexagonDictionary[go3] = 0;
-                    tempHexagonDictionary[go4] = 0;
+                    tempHexagonDictionary[g0] = 0;
+                    tempHexagonDictionary[g3] = 0;
+                    tempHexagonDictionary[g4] = 0;
                 }
 
-                if (c0 == c4 && c0 == c5)
+                if (CheckHexagonsColors(g0, g4, g5))
                 {
-                    tempHexagonDictionary[go0] = 0;
-                    tempHexagonDictionary[go4] = 0;
-                    tempHexagonDictionary[go5] = 0;
+                    tempHexagonDictionary[g0] = 0;
+                    tempHexagonDictionary[g4] = 0;
+                    tempHexagonDictionary[g5] = 0;
                 }
 
-                if (c0 == c5 && c0 == c6)
+                if (CheckHexagonsColors(g0, g5, g6))
                 {
-                    tempHexagonDictionary[go0] = 0;
-                    tempHexagonDictionary[go5] = 0;
-                    tempHexagonDictionary[go6] = 0;
+                    tempHexagonDictionary[g0] = 0;
+                    tempHexagonDictionary[g5] = 0;
+                    tempHexagonDictionary[g6] = 0;
                 }
 
-                if (c0 == c6 && c0 == c1)
+                if (CheckHexagonsColors(g0, g6, g1))
                 {
-                    tempHexagonDictionary[go0] = 0;
-                    tempHexagonDictionary[go6] = 0;
-                    tempHexagonDictionary[go1] = 0;
+                    tempHexagonDictionary[g0] = 0;
+                    tempHexagonDictionary[g6] = 0;
+                    tempHexagonDictionary[g1] = 0;
                 }
             }
         }
+        
+        //TODO Üstteki fonksiyonun çalışırlığı onaylanılacak.
+        //////////// Altıgen renk kontrollerinin bitimi
+        
+        ////////////  Özel kontroller
+        //Sol elt alt ve kolon sayısına göre sağ en üst veya en alt köşeler
+        //üst tarafta uygulanan kontrole girmiyor. Bu aşağıdaki kontrol ile onların da 
+        //kontrolü sağlanıyor.
+        //GameObject sg0 = hexagons[0, 0];
+        //GameObject sg1 = hexagons[1, 0];
+        //GameObject sg2 = hexagons[0, 1];
+
+        //if (CheckHexagonsColors(sg0, sg1, sg2))
+        //{
+        //    tempHexagonDictionary[sg0] = 0;
+        //    tempHexagonDictionary[sg1] = 0;
+        //    tempHexagonDictionary[sg2] = 0;
+        //}
+
+        //sg0 = hexagons[columnSize % 2 == 0 ? rowSize-1 : 0, columnSize - 1];
+        //sg1 = hexagons[columnSize % 2 == 0 ? rowSize-2 : 1, columnSize - 1];
+        //sg2 = hexagons[columnSize % 2 == 0 ? rowSize-1 : 0, columnSize - 2];
+        //
+        //if (CheckHexagonsColors(sg0, sg1, sg2))
+        //{
+        //    tempHexagonDictionary[sg0] = 0;
+        //    tempHexagonDictionary[sg1] = 0;
+        //    tempHexagonDictionary[sg2] = 0;
+        //}
+        ////////////  Özel kontrollerin bitimi
 
         explosionList = tempHexagonDictionary.Keys.ToList();
         if (explosionList.Count > 0)
         {
-            ExplodeHexagons(overridePointMechanic);
-            //StartCoroutine(ExplodeHexagons(overridePointMechanic));
+            yield return new WaitForSeconds(Constants.WAIT_TIME);
+            StartCoroutine(ExplodeHexagons(overridePointMechanic));
         }
-
-        yield return null;
+        else
+        {
+            yield return new WaitForSeconds(Constants.WAIT_TIME);
+            if (overridePointMechanic)
+            {
+                menuController.fadeOutLoadingCanvas();
+            }
+        }
     }
 
-    private void ExplodeHexagons(bool overridePointMechanic)
+    /// <summary>
+    /// Patlaması gereken altıgenleri patlatır.
+    /// overridePointMechanic puan verilmemesi gereken durumlarda true gönderilmelidir.
+    /// </summary>
+    /// <param name="overridePointMechanic"></param>
+    /// <returns></returns>
+    private IEnumerator ExplodeHexagons(bool overridePointMechanic)
     {
-        //yield return new WaitForSeconds(0.5f);
-
         if (!overridePointMechanic)
         {
+            int lastBombCount = bombCount;
             point += (5 * explosionList.Count);
             menuController.setPointText(point.ToString());
+            bombCount = (int) Math.Floor((double)point / bombThresholdPoint);
+
+            if (bombCount != lastBombCount)
+            {
+                shouldInstantiateBomb = true;
+            }
         }
 
         Dictionary<int, byte> tempColumnDictionary = new Dictionary<int, byte>();
@@ -492,27 +638,52 @@ public class GameController : MonoBehaviour
             Hexagon temp = explosionList[i].GetComponent<Hexagon>();
             tempColumnDictionary[temp.Col] = 0;
             hexagons[temp.Row, temp.Col] = null;
+            
             if (explosionList[i].transform.IsChildOf(selectedHexagonsContainer.transform))
             {
                 isTurning = false;
             }
+
+            if (explosionList[i].GetComponent<BombHexagon>() != null)
+            {
+                BombHexagon bombTemp = explosionList[i].GetComponent<BombHexagon>();
+                bombTemp.bombExplosion -= SetGameOver;
+                if (bombTemp.bombCounter == 0)
+                {
+                    isGameOver = false;
+                }
+            }
             Destroy(explosionList[i]);
         }
-        explosionList.Clear();
-        explosionColumnList = tempColumnDictionary.Keys.ToList();
-        RefillHexagons(overridePointMechanic);
-        //StartCoroutine(RefillHexagons(overridePointMechanic));
+
+        if (!isGameOver)
+        { 
+            explosionColumnList = tempColumnDictionary.Keys.ToList();
+            yield return new WaitForSeconds(Constants.WAIT_TIME);
+            StartCoroutine(RefillHexagons(overridePointMechanic));
+        }
+        else
+        {
+            menuController.setGameOverPointText(point.ToString());
+            menuController.setGameOverMovementText(movement.ToString());
+            menuController.fadeInGameOverCanvas();
+        }
     }
 
-    //public List<GameObject> tempColumnList = new List<GameObject>();
-    private void RefillHexagons(bool overridePointMechanic)
+    /// <summary>
+    /// Patlamış olan altıgenlerin yerine üst tarafta bulunan altıgeneleri kaydırır ve
+    /// boşluklara yeniden altıgen oluşturur.
+    /// overridePointMechanic puan verilmemesi gereken durumlarda true gönderilmelidir.
+    /// </summary>
+    /// <param name="overridePointMechanic"></param>
+    /// <returns></returns>
+    private IEnumerator RefillHexagons(bool overridePointMechanic)
     {
-        //yield return new WaitForSeconds(0.5f);
-
+        bool isRefilled = false;
+        isRefilling = true;
         for (int i = 0; i < explosionColumnList.Count; i++)
         {
             int counter = 0;
-
             for (int j = 0; j < rowSize; j++)
             {
                 if (hexagons[j, explosionColumnList[i]] != null)
@@ -522,19 +693,128 @@ public class GameController : MonoBehaviour
                     movingObject.GetComponent<Hexagon>().Row = counter;
                     movingObject.GetComponent<Hexagon>().Col = explosionColumnList[i];
                     hexagons[counter, explosionColumnList[i]] = movingObject;
-
                     counter++;
-                    //tempColumnList.Add(hexagons[j, explosionColumnList[i]]);
                 }
             }
 
             for (int j = counter; j < rowSize; j++)
             {
+                yield return new WaitForSeconds(Constants.HEX_INSTANTIATE_TIME);
+                isRefilled = true;
                 GenerateHexagon(j, explosionColumnList[i]);
             }
         }
+        isRefilling = false;
+        if (isRefilled)
+        {
+            yield return new WaitForSeconds(Constants.WAIT_TIME);
+            StartCoroutine(CheckHexagonExplosion(overridePointMechanic));
+        }
+        else
+        {
+            yield return new WaitForSeconds(Constants.WAIT_TIME);
+        }
+    }
 
-        CheckHexagonExplosion(overridePointMechanic);
-        //StartCoroutine(CheckHexagonExplosion(overridePointMechanic));
+    /// <summary>
+    /// Oyun bitti mi değişkenini ayarlar.
+    /// </summary>
+    private void SetGameOver()
+    {
+        isGameOver = true;
+    }
+
+    /// <summary>
+    /// Gönderilen altgenlerin renk eşitliliğini kontrol eder.
+    /// g1, g2, g3 -> altıgen objesi
+    /// </summary>
+    /// <param name="g1"></param>
+    /// <param name="g2"></param>
+    /// <param name="g3"></param>
+    /// <returns></returns>
+    private bool CheckHexagonsColors(GameObject g1, GameObject g2, GameObject g3)
+    {
+        if (g1 == null || g2 == null || g3 == null) return false;
+        
+        Hexagon h1 = g1.GetComponent<Hexagon>();
+        Hexagon h2 = g2.GetComponent<Hexagon>();
+        Hexagon h3 = g3.GetComponent<Hexagon>();
+
+        int c1 = h1.ColorIndex;
+        int c2 = h2.ColorIndex;
+        int c3 = h3.ColorIndex;
+
+        return (c1 == c2 && c1 == c3);
+    }
+
+    /// <summary>
+    /// Altıgen objelerinin tutulduğu diziden satır ve sütuna bağlı olarak altıgen objesi döndürür. 
+    /// </summary>
+    /// <param name="row"></param>
+    /// <param name="column"></param>
+    /// <returns></returns>
+    public GameObject GetHexagon(int row, int column)
+    {
+        try
+        {
+            return hexagons[row, column];
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Seçili altıgenin komşu altıgenlerini ayarlar.
+    /// </summary>
+    /// <param name="hexagon"></param>
+    public void SetNeighborHexagons(GameObject hexagon)
+    {
+        int row = hexagon.GetComponent<Hexagon>().Row;
+        int col = hexagon.GetComponent<Hexagon>().Col;
+                        
+        neighborHexagons = new GameObject[]
+        {
+            GetHexagon(col % 2 == 0 ? row - 1 : row, col + 1),
+            GetHexagon(col % 2 == 0 ? row : row + 1, col + 1),
+            GetHexagon(row + 1, col),
+            GetHexagon(col % 2 == 0  ? row : row + 1, col - 1),
+            GetHexagon(col % 2 == 0  ? row - 1 : row, col - 1),
+            GetHexagon(row - 1, col),
+            GetHexagon(col % 2 == 0 ? row - 1 : row, col + 1),
+        };
+    }
+
+    /// <summary>
+    /// Varolan altıgenleri silip oyunu yeniden başlatır.
+    /// </summary>
+    /// <returns></returns>
+    public IEnumerator RestartGame()
+    {
+        for (int i = 0; i < rowSize; i++)
+        {
+            for (int j = 0; j < columnSize; j++)
+            {
+                Destroy(hexagons[i,j]);
+            }
+        }
+
+        yield return new WaitForSeconds(Constants.WAIT_TIME);
+        menuController.fadeOutGameOverCanvas();
+        StartCoroutine(SetupGame());
+    }
+
+    public IEnumerator CheckAvailableMovement()
+    {
+        for (int i = 0; i < rowSize; i++)
+        {
+            for (int j = 0; j < columnSize; j++)
+            {
+                
+            }
+        }
+        
+        yield return new WaitForSeconds(Constants.WAIT_TIME);
     }
 }

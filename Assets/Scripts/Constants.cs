@@ -17,4 +17,14 @@ public class Constants : MonoBehaviour
 
     //Orjin noktası
     public static Vector3 ORIGIN_POINT = new Vector3(0,0,0);
+    
+    //Varsayılan bomba geri sayım başlangıcı
+    public static int BOMB_COUNTER = 10;
+
+    //IEnumatorler arası beklenen süre
+    public static float WAIT_TIME = 0.02f;
+
+    public static float HEX_INSTANTIATE_TIME = 0.02f;
+
+    public static float HEX_ROTATION_WAIT_TIME = 1.0f;
 }
