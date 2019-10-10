@@ -9,6 +9,7 @@ public class TouchController : MonoBehaviour
 
     private Vector2 touchStarted, touchEnded;
 
+    //Aynı yere dokunmadığını anlamak için gerekli eşik değeri.
     public float touchThreshold = 50f;
 
     private void Start()
@@ -16,6 +17,9 @@ public class TouchController : MonoBehaviour
         gameController = GetComponent<GameController>();
     }
 
+    /// <summary>
+    /// Ekranın ilk dokunulan ve son kaldırıldığı noktaların koordinatlarını karşılaştırır.
+    /// </summary>
     void Update()
     {
         if (Input.touchCount > 0)

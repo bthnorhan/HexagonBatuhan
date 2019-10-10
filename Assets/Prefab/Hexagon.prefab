@@ -169,8 +169,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8710333637606618424}
-  - component: {fileID: 1670567111901092082}
   - component: {fileID: 5927195150203247805}
+  - component: {fileID: 1670567111901092082}
   m_Layer: 0
   m_Name: Hexagon
   m_TagString: Hexagon
@@ -194,27 +194,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1670567111901092082
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4182905245161848703}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: beafdf2c992f04f238303be89b302649, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  background: {fileID: 2848010249395718925}
-  textMeshPro: {fileID: 0}
-  colors:
-  - {r: 0.95, g: 0.26, b: 0.21, a: 1}
-  - {r: 0.61, g: 0.15, b: 0.69, a: 1}
-  - {r: 0.24150053, g: 0.32190835, b: 0.764151, a: 1}
-  - {r: 0.12517802, g: 0.81821775, b: 0.9150943, a: 1}
-  - {r: 0.20764478, g: 0.8113208, b: 0.18752226, a: 1}
-  colorIndex: 0
 --- !u!61 &5927195150203247805
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -225,7 +204,7 @@ BoxCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: -0.00013169646}
@@ -241,3 +220,22 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 0.5, y: 0.8620754}
   m_EdgeRadius: 0
+--- !u!114 &1670567111901092082
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4182905245161848703}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: beafdf2c992f04f238303be89b302649, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  background: {fileID: 2848010249395718925}
+  colors:
+  - {r: 0.95, g: 0.26, b: 0.21, a: 1}
+  - {r: 0.61, g: 0.15, b: 0.69, a: 1}
+  - {r: 0.24150053, g: 0.32190835, b: 0.764151, a: 1}
+  - {r: 0.12517802, g: 0.81821775, b: 0.9150943, a: 1}
+  - {r: 0.20764478, g: 0.8113208, b: 0.18752226, a: 1}

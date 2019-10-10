@@ -6,6 +6,7 @@ using Doozy.Engine.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class MenuController : MonoBehaviour
 {
@@ -17,15 +18,15 @@ public class MenuController : MonoBehaviour
 
     //Yükleniyor görseli
     public UICanvas loadingCanvas;
-    
+
     //Yükleniyor indikatörü
-    public UIView loadingView;
+    public Image loadingView;
     private RectTransform loadingViewRect;
-    
+
     public UICanvas gameOverCanvas;
     public TextMeshProUGUI gameOverPoint;
     public TextMeshProUGUI gameOverMovement;
-    
+
     // İndikatöörün dönüş hızı
     private float rotateSpeed = 200f;
     private void Start()
@@ -44,7 +45,7 @@ public class MenuController : MonoBehaviour
 
     /// <summary>
     /// Puanı günceller.
-    /// point -> Güncellenecek yazı 
+    /// point -> Güncellenecek yazı
     /// </summary>
     /// <param name="point"></param>
     public void setPointText(string point)
@@ -54,7 +55,7 @@ public class MenuController : MonoBehaviour
 
     /// <summary>
     /// Yapılmış hareket sayısını günceller.
-    /// movement -> Güncellenecek yazı 
+    /// movement -> Güncellenecek yazı
     /// </summary>
     /// <param name="movement"></param>
     public void setMovementText(string movement)
@@ -95,7 +96,7 @@ public class MenuController : MonoBehaviour
     {
         gameOverCanvas.transform.gameObject.SetActive(false);
     }
-    
+
     /// <summary>
     /// Oyun bitti görselini aktif hale getirir.
     /// </summary>
@@ -103,7 +104,7 @@ public class MenuController : MonoBehaviour
     {
         gameOverCanvas.transform.gameObject.SetActive(true);
     }
-    
+
     /// <summary>
     /// Oyun bitti ekranındaki puan yazısını yazdırır.
     /// point -> puan yazısı

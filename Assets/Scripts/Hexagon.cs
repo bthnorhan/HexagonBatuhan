@@ -22,11 +22,6 @@ public class Hexagon : MonoBehaviour
     public int Row { get => row; set => row = value; }
     public int Col { get => col; set => col = value; }
 
-    public Hexagon()
-    {
-        
-    }
-
     public Hexagon(Color[] colors)
     {
         //Renk listesini günceller.

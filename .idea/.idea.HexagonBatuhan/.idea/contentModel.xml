@@ -760,6 +760,7 @@
           <e p="readme.txt" t="Include" />
         </e>
         <e p="Scripts" t="Include">
+          <e p="BombHexagon.cs" t="Include" />
           <e p="Constants.cs" t="Include" />
           <e p="GameController.cs" t="Include" />
           <e p="Hexagon.cs" t="Include" />

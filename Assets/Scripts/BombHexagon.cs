@@ -19,16 +19,20 @@ public class BombHexagon : Hexagon
     public delegate void BombExplosion();
     public BombExplosion bombExplosion;
 
+    /// <summary>
+    /// Bombanın geri sayımını 1 azaltır 0 veya daha küçükse oyun bitimini tetikler.
+    /// </summary>
     public void decreaseBombCounter()
     {
         bombCounter--;
         bombCounterText.SetText(bombCounter.ToString());
         if (bombCounter <= 0)
         {
-            bombExplosion();
+            if (bombExplosion != null) bombExplosion();
         }
     }
 
+    //Bombanın geri sayım yazısını ayarlar.
     public void setBombCounter(int counter)
     {
         bombCounter = counter;
